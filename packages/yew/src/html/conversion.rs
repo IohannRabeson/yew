@@ -83,10 +83,17 @@ macro_rules! impl_into_prop {
 
 // implemented with literals in mind
 impl_into_prop!(|value: &'static str| -> String { value.to_owned() });
+impl_into_prop!(|value: &'static str| -> Cow<'static, str> { Cow::Borrowed(value) });
 
 impl_into_prop!(|value: &'static str| -> AttrValue { AttrValue::Static(value) });
 impl_into_prop!(|value: String| -> AttrValue { AttrValue::Owned(value) });
 impl_into_prop!(|value: Rc<str>| -> AttrValue { AttrValue::Rc(value) });
+impl_into_prop!(|value: Cow<'static, str>| -> AttrValue {
+    match value {
+        Cow::Borrowed(value) => AttrValue::Static(value),
+        Cow::Owned(value) => AttrValue::Owned(value),
+    }
+});
 
 #[cfg(test)]
 mod test {
@@ -99,5 +106,9 @@ mod test {
         let _: AttrValue = "foo".into_prop_value();
         let _: Option<AttrValue> = "foo".into_prop_value();
         let _: Option<AttrValue> = Rc::<str>::from("foo").into_prop_value();
+        let _: AttrValue = Cow::<'static, str>::Borrowed("foo").into_prop_value();
+        let _: AttrValue = Cow::<'static, str>::Owned("foo".to_owned()).into_prop_value();
+        let _: Option<AttrValue> = Cow::<'static, str>::Borrowed("foo").into_prop_value();
+        let _: Option<AttrValue> = Cow::<'static, str>::Owned("foo".to_owned()).into_prop_value();
     }
 }
